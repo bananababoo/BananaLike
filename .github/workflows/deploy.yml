@@ -38,6 +38,12 @@ jobs:
       - name: Run tests
         run: cargo test --release
 
+      - name: Create public directory
+        run: mkdir -p public
+
+      - name: Build project (example with Hugo)
+        run: hugo -d public
+
       - name: List build output
         run: ls -al ./public
 
