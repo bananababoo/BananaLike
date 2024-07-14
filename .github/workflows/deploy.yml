@@ -32,25 +32,6 @@ jobs:
       - name: Update Cargo
         run: rustup update stable
 
-      - name: Build project
-        run: cargo build --release --target wasm32-unknown-unknown
-
-      - name: Run tests
-        run: cargo test --release
-
-      - name: Create public directory
-        run: mkdir -p public
-
-      - name: List build output
-        run: ls -al ./public
-
-      - name: Deploy to GitHub Pages
-        if: success()
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public
-
       - name: Clean up old cache
         run: cargo clean
 
@@ -63,6 +44,44 @@ jobs:
       - name: Install dependencies
         run: cargo install --path .
 
+
+      - name: Install wasm32 target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-bindgen-cli
+        run: cargo install wasm-bindgen-cli
+
+      - name: Build the project
+        run: cargo build --release --target wasm32-unknown-unknown
+
+      - name: Run wasm-bindgen
+        run: |
+          mkdir -p wasm
+          wasm-bindgen target/wasm32-unknown-unknown/release/BananaLike.wasm --out-dir wasm --no-modules --no-typescript
+
+      - name: Create HTML file
+        run: |
+          echo '<html>
+          <head>
+            <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+          </head>
+          <body>
+            <canvas id="canvas" width="640" height="480"></canvas>
+            <script src="./BananaLike.js"></script>
+            <script>
+              window.addEventListener("load", async () => {
+                await wasm_bindgen("./BananaLike_bg.wasm");
+              });
+            </script>
+          </body>
+          </html>' > wasm/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./wasm
+
       - name: Publish to GitHub Pages
         if: success()
         env:
@@ -71,6 +90,6 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git remote set-url origin https://${GH_PAT}@github.com/bananababoo/bananababoo.github.io.git
-          git add public Cargo.lock
+          git add target Cargo.lock
           git commit -m "Deploy to GitHub Pages"
           git push
