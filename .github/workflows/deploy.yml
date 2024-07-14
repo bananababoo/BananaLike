@@ -1,58 +1,67 @@
-name: Build and Deploy to GitHub Pages
+name: Deploy
 
 on:
   push:
     branches:
-      - master  # or your default branch
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - uses: actions/checkout@v2
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
 
-      - name: Install wasm32 target
-        run: rustup target add wasm32-unknown-unknown
+    - name: Cache Rust dependencies
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
 
-      - name: Install wasm-bindgen-cli
-        run: cargo install wasm-bindgen-cli
+    - name: Update Cargo
+      run: rustup update stable
 
-      - name: Build the project
-        run: cargo build --release --target wasm32-unknown-unknown
+    - name: Build project
+      run: cargo build --release
 
-      - name: Run wasm-bindgen
-        run: |
-          mkdir -p wasm
-          wasm-bindgen target/wasm32-unknown-unknown/release/BananaLike.wasm --out-dir wasm --no-modules --no-typescript
+    - name: Run tests
+      run: cargo test --release
 
-      - name: Create HTML file
-        run: |
-          echo '<html>
-          <head>
-            <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
-          </head>
-          <body>
-            <canvas id="canvas" width="640" height="480"></canvas>
-            <script src="./BananaLike.js"></script>
-            <script>
-              window.addEventListener("load", async () => {
-                await wasm_bindgen("./BananaLike_bg.wasm");
-              });
-            </script>
-          </body>
-          </html>' > wasm/index.html
+    - name: Deploy to GitHub Pages
+      if: success()
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./public
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./wasm
+    - name: Clean up old cache
+      run: cargo clean
+
+    - name: Force update dependencies
+      run: cargo update
+
+    - name: Check outdated dependencies
+      run: cargo outdated
+
+    - name: Install dependencies
+      run: cargo install --path .
+
+    - name: Publish to GitHub Pages
+      if: success()
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add public
+        git commit -m "Deploy to GitHub Pages"
+        git push
