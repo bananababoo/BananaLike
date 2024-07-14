@@ -71,6 +71,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World){
         pos.x = min(79, max(0, delta_x + pos.x));
         pos.y = min(49, max(0, delta_y + pos.y));
     }
+
 }
 
 fn player_input(gs: &mut State, ctx: &mut Rltk){
