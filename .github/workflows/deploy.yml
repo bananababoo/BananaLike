@@ -47,6 +47,15 @@ jobs:
       - name: Install wasm-bindgen-cli
         run: cargo install wasm-bindgen-cli
 
+      - name: Clean up old cache
+        run: cargo clean
+
+      - name: Force update dependencies
+        run: cargo update
+
+      - name: Check outdated dependencies
+        run: cargo outdated
+
       - name: Build the project
         run: cargo build --release --target wasm32-unknown-unknown
 
