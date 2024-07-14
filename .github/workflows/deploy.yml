@@ -10,61 +10,64 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Set up Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
 
-    - name: Cache Rust dependencies
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/bin
-          ~/.cargo/registry
-          ~/.cargo/git
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
+      - name: Cache Rust dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
-    - name: Update Cargo
-      run: rustup update stable
+      - name: Update Cargo
+        run: rustup update stable
 
-    - name: Build project
-      run: cargo build --release
+      - name: Build project
+        run: cargo build --release
 
-    - name: Run tests
-      run: cargo test --release
+      - name: Run tests
+        run: cargo test --release
 
-    - name: Deploy to GitHub Pages
-      if: success()
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./web
+      - name: List build output
+        run: ls -al ./public
 
-    - name: Clean up old cache
-      run: cargo clean
+      - name: Deploy to GitHub Pages
+        if: success()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
 
-    - name: Force update dependencies
-      run: cargo update
+      - name: Clean up old cache
+        run: cargo clean
 
-    - name: Check outdated dependencies
-      run: cargo outdated
+      - name: Force update dependencies
+        run: cargo update
 
-    - name: Install dependencies
-      run: cargo install --path .
+      - name: Check outdated dependencies
+        run: cargo outdated
 
-    - name: Publish to GitHub Pages
-      if: success()
-      env:
-        GH_PAT: ${{ secrets.GH_PAT }}
-      run: |
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git remote set-url origin https://${GH_PAT}@github.com/bananababoo/bananababoo.github.io.git
-        git add web
-        git commit -m "Deploy to GitHub Pages"
-        git push
+      - name: Install dependencies
+        run: cargo install --path .
+
+      - name: Publish to GitHub Pages
+        if: success()
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git remote set-url origin https://${GH_PAT}@github.com/bananababoo/bananababoo.github.io.git
+          git add public
+          git commit -m "Deploy to GitHub Pages"
+          git push
